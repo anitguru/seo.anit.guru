@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as cheerio from "cheerio";
 import { normalizeUrl, validateUrl, fetchPage } from "@/lib/seo/analyzer";
 import type { AuditIssue, AuditPageResult, SiteAuditResult } from "@/lib/seo/types";
+import { checkQuota } from "@/lib/quota";
 
 const MAX_PAGES = 50;
 const CONCURRENCY = 3;
@@ -127,6 +128,13 @@ function auditPage($: cheerio.CheerioAPI, pageUrl: string, status: number, baseD
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await checkQuota("seo-audit"))) {
+      return NextResponse.json(
+        { error: "Daily request limit reached for this tool. Try again tomorrow." },
+        { status: 429 }
+      );
+    }
+
     let body: unknown;
     try {
       body = await request.json();

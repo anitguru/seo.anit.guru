@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeUrl, validateUrl, analyzePage } from "@/lib/seo/analyzer";
+import { checkQuota } from "@/lib/quota";
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await checkQuota("seo-analyze"))) {
+      return NextResponse.json(
+        { error: "Daily request limit reached for this tool. Try again tomorrow." },
+        { status: 429 }
+      );
+    }
+
     let body: unknown;
     try {
       body = await request.json();

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkQuota } from "@/lib/quota";
 
 const QUESTION_PREFIXES = [
   "how to", "what is", "what are", "why does", "why is",
@@ -57,6 +58,13 @@ async function fetchBatch(queries: string[], concurrency: number = 5): Promise<s
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await checkQuota("seo-keywords"))) {
+      return NextResponse.json(
+        { error: "Daily request limit reached for this tool. Try again tomorrow." },
+        { status: 429 }
+      );
+    }
+
     let body: unknown;
     try {
       body = await request.json();
